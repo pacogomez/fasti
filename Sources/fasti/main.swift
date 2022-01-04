@@ -28,6 +28,15 @@ EKEventStore().requestAccess(to:.event, completion: completion)
 
 let eventStore = EKEventStore()
 
+let sources = eventStore.sources
+
+// for (_, source) in sources.enumerated(){
+//    print(source.title, source.value(forKey: "displayOrder")!)
+//    for (_, calendar) in source.calendars(for: .event).enumerated(){
+//      print("  \(calendar.title)", calendar.value(forKey: "displayOrder")!)
+//    }
+// }
+
 let calendars = eventStore.calendars(for: .event)
 
 let now = Date()
@@ -46,12 +55,12 @@ localDateFormatter.timeStyle = .medium
 //   }
 // }
 
-var table = TextTable(columns: [eventCol, startCol, endCol, calendarCol])
+var table = TextTable(columns: [startCol, endCol, eventCol, calendarCol])
 
   let predicate = eventStore.predicateForEvents(withStart: now, end: weekFromNow, calendars: calendars)
   let matchingEvents = eventStore.events(matching: predicate)
   for event in matchingEvents{
-    table.addRow(values:[event.title!, localDateFormatter.string(from:event.startDate!),localDateFormatter.string(from:event.endDate!),event.calendar.title])
+    table.addRow(values:[localDateFormatter.string(from:event.startDate!),localDateFormatter.string(from:event.endDate!),event.title!, event.calendar.source.title+"/"+event.calendar.title])
     // print("\(event.title!) - \(event.calendar.title)\n\t\(localDateFormatter.string(from:event.startDate!)) - \(localDateFormatter.string(from:event.endDate!))")
     // print(event)
   }
