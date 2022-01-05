@@ -3,25 +3,10 @@ import SwiftCLI
 
 import SwiftyTextTable
 
-// First create some columns
-let eventCol = TextTableColumn(header: "Event")
-let startCol = TextTableColumn(header: "Start")
-let endCol = TextTableColumn(header: "End")
-let calendarCol = TextTableColumn(header: "Calendar")
-
-class GreetCommand: Command {
-    let name = "greet"
-
-    @Param var person: String
-
-    func execute() throws {
-        stdout <<< "Hello \(person)!"
-    }
-}
-
 func completion(granted: Bool, error: Error!){
   // print("granted: \(granted)")
 }
+
 let calendar = Calendar.autoupdatingCurrent
 
 EKEventStore().requestAccess(to:.event, completion: completion)
@@ -30,46 +15,61 @@ let eventStore = EKEventStore()
 
 let sources = eventStore.sources
 
-// for (_, source) in sources.enumerated(){
-//    print(source.title, source.value(forKey: "displayOrder")!)
-//    for (_, calendar) in source.calendars(for: .event).enumerated(){
-//      print("  \(calendar.title)", calendar.value(forKey: "displayOrder")!)
-//    }
-// }
+class GetGroup: CommandGroup {
+    let name = "get"
+    let children: [Routable] = [ListEventsCommand(), ListCalendarsCommand()]
+    let shortDescription = "get"
+}
 
-let calendars = eventStore.calendars(for: .event)
+class ListEventsCommand: Command {
+    let name = "events"
 
-let now = Date()
-let weekFromNow = now.addingTimeInterval(1 * 24.0 * 3600.0)
+    @Key("-n", "--next")
+    var next: Int?
 
-let localDateFormatter = DateFormatter()
-localDateFormatter.dateStyle = .medium
-localDateFormatter.timeStyle = .medium
+    func execute() throws {
+      let nextDays : Int = next ?? 1
+      let calendars = eventStore.calendars(for: .event)
 
-// for (_, calendar) in calendars.enumerated(){
-//   print(calendar.title)
-//   let predicate = eventStore.predicateForEvents(withStart: now, end: weekFromNow, calendars: [calendar])
-//   let matchingEvents = eventStore.events(matching: predicate)
-//   for event in matchingEvents{
-//     print("\t\(event.title!) - \(event.calendar.title!)\n\t\t\(event.startDate!)-\(event.endDate!)")
-//   }
-// }
+      let now = Date()
+      let endOfToday = Calendar.current.date(bySettingHour:23, minute:59, second: 59, of: now) ?? now
+      let later = Calendar.current.date(byAdding: .day, value: nextDays, to:endOfToday) ?? now
 
-var table = TextTable(columns: [startCol, endCol, eventCol, calendarCol])
+      let localDateFormatter = DateFormatter()
+      // localDateFormatter.dateStyle = .medium
+      // localDateFormatter.timeStyle = .medium
+      localDateFormatter.dateFormat = "yyyy-MM-dd hh:mm a EEEEE"
 
-  let predicate = eventStore.predicateForEvents(withStart: now, end: weekFromNow, calendars: calendars)
-  let matchingEvents = eventStore.events(matching: predicate)
-  for event in matchingEvents{
-    table.addRow(values:[localDateFormatter.string(from:event.startDate!),localDateFormatter.string(from:event.endDate!),event.title!, event.calendar.source.title+"/"+event.calendar.title])
-    // print("\(event.title!) - \(event.calendar.title)\n\t\(localDateFormatter.string(from:event.startDate!)) - \(localDateFormatter.string(from:event.endDate!))")
-    // print(event)
-  }
+      let eventCol = TextTableColumn(header: "Event")
+      let startCol = TextTableColumn(header: "Start")
+      let endCol = TextTableColumn(header: "End")
+      let calendarCol = TextTableColumn(header: "Calendar")
 
+      var table = TextTable(columns: [startCol, endCol, eventCol, calendarCol])
 
-  // Then render the table and use
-  let tableString = table.render()
-  print(tableString)
+        let predicate = eventStore.predicateForEvents(withStart: now, end: later, calendars: calendars)
+        let matchingEvents = eventStore.events(matching: predicate)
+        for event in matchingEvents{
+          table.addRow(values:[localDateFormatter.string(from:event.startDate!),localDateFormatter.string(from:event.endDate!),event.title!, event.calendar.source.title+"/"+event.calendar.title])
+        }
+        let tableString = table.render()
+        print(tableString)
+    }
+}
 
-  let greeter = CLI(name: "greeter")
-  greeter.commands = [GreetCommand()]
-  // greeter.go()
+class ListCalendarsCommand: Command {
+    let name = "calendars"
+
+    func execute() throws {
+        for (_, source) in sources.enumerated(){
+           print(source.title, source.value(forKey: "displayOrder")!)
+           for (_, calendar) in source.calendars(for: .event).enumerated(){
+             print("  \(calendar.title)", calendar.value(forKey: "displayOrder")!)
+           }
+        }
+    }
+}
+
+let fastiCli = CLI(name: "fasti")
+fastiCli.commands = [GetGroup()]
+fastiCli.go()
