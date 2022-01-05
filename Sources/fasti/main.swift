@@ -36,8 +36,6 @@ class ListEventsCommand: Command {
       let later = Calendar.current.date(byAdding: .day, value: nextDays, to:endOfToday) ?? now
 
       let localDateFormatter = DateFormatter()
-      // localDateFormatter.dateStyle = .medium
-      // localDateFormatter.timeStyle = .medium
       localDateFormatter.dateFormat = "yyyy-MM-dd hh:mm a EEEEE"
 
       let eventCol = TextTableColumn(header: "Event")
