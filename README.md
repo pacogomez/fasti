@@ -3,7 +3,7 @@
 Using the Calendar from the command line.
 
 
-Sample usage:
+## Sample Usage
 ```
 fasti get calendars
 
@@ -14,9 +14,14 @@ fasti get events -n 7
 cal -3
 ```
 
-TODO:
+## TODO
 ```
 fasti add event 'bike ride' 2022-01-09T10:00
 
 fasti del event 'bike ride' 2022-01-09T10:00
+```
+
+## Building
+```
+make install
 ```
