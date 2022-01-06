@@ -1,3 +1,5 @@
+//(C) 2022 Paco Gomez
+
 import EventKit
 import SwiftCLI
 
@@ -19,6 +21,32 @@ class GetGroup: CommandGroup {
     let name = "get"
     let children: [Routable] = [ListEventsCommand(), ListCalendarsCommand()]
     let shortDescription = "get"
+}
+
+class AddGroup: CommandGroup {
+    let name = "add"
+    let children: [Routable] = [AddEventCommand()]
+    let shortDescription = "add"
+}
+
+class AddEventCommand: Command {
+  let name = "event"
+  func execute() throws {
+    print("not implemented")
+  }
+}
+
+class DelGroup: CommandGroup {
+    let name = "del"
+    let children: [Routable] = [DelEventCommand()]
+    let shortDescription = "del"
+}
+
+class DelEventCommand: Command {
+  let name = "event"
+  func execute() throws {
+    print("not implemented")
+  }
 }
 
 class ListEventsCommand: Command {
@@ -69,5 +97,5 @@ class ListCalendarsCommand: Command {
 }
 
 let fastiCli = CLI(name: "fasti")
-fastiCli.commands = [GetGroup()]
+fastiCli.commands = [GetGroup(), AddGroup(), DelGroup()]
 fastiCli.go()
