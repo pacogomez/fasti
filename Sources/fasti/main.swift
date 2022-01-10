@@ -76,7 +76,7 @@ class ListEventsCommand: Command {
                 }
             }
         }
-        let next = next ?? 1
+        let next = next ?? 0
         let calendars = eventStore.calendars(for: .event)
         
         let endOfToday = Calendar.current.date(bySettingHour:23, minute:59, second: 59, of: startDate!) ?? startDate!
