@@ -55,13 +55,30 @@ class ListEventsCommand: Command {
     @Key("-n", "--next")
     var next: Int?
 
+    @Key("-s", "--start")
+    var start: String?
+
+    // @Flag("-o", "--output")
+    // var outputFormat: String
+
     func execute() throws {
-      let nextDays : Int = next ?? 1
+      var startDate: Date? = Date()
+      if let start = start {
+        if start.count > 0 {
+          let dateFormatter = DateFormatter()
+          dateFormatter.dateFormat = "yyyy-MM-dd"
+          startDate = dateFormatter.date(from: start)
+          if startDate == nil {
+            print("invalid start date: \(start)")
+            return
+          }
+        }
+      }
+      let next = next ?? 1
       let calendars = eventStore.calendars(for: .event)
 
-      let now = Date()
-      let endOfToday = Calendar.current.date(bySettingHour:23, minute:59, second: 59, of: now) ?? now
-      let later = Calendar.current.date(byAdding: .day, value: nextDays, to:endOfToday) ?? now
+      let endOfToday = Calendar.current.date(bySettingHour:23, minute:59, second: 59, of: startDate!) ?? startDate!
+      let later = Calendar.current.date(byAdding: .day, value: next, to:endOfToday) ?? startDate!
 
       let localDateFormatter = DateFormatter()
       localDateFormatter.dateFormat = "yyyy-MM-dd hh:mm a EEEEE"
@@ -73,13 +90,16 @@ class ListEventsCommand: Command {
 
       var table = TextTable(columns: [startCol, endCol, eventCol, calendarCol])
 
-        let predicate = eventStore.predicateForEvents(withStart: now, end: later, calendars: calendars)
-        let matchingEvents = eventStore.events(matching: predicate)
-        for event in matchingEvents{
-          table.addRow(values:[localDateFormatter.string(from:event.startDate!),localDateFormatter.string(from:event.endDate!),event.title!, event.calendar.source.title+"/"+event.calendar.title])
-        }
-        let tableString = table.render()
-        print(tableString)
+      let predicate = eventStore.predicateForEvents(withStart: startDate!, end: later, calendars: calendars)
+      let matchingEvents = eventStore.events(matching: predicate)
+      for event in matchingEvents{
+        table.addRow(values:[localDateFormatter.string(from:event.startDate!),localDateFormatter.string(from:event.endDate!),event.title!, event.calendar.source.title+"/"+event.calendar.title])
+        // print(event)
+        // print(event.attendees)
+        // print("--")
+      }
+      let tableString = table.render()
+      print(tableString)
     }
 }
 
