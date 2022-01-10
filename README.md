@@ -11,6 +11,12 @@ fasti get events
 
 fasti get events -n 7
 
+fasti get events -s 2022-02-01 -n 0
+
+fasti get events -o report
+
+fasti get events -o table
+
 cal -3
 ```
 
