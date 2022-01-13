@@ -46,8 +46,33 @@ class DelGroup: CommandGroup {
 
 class DelEventCommand: Command {
     let name = "event"
+    @Key("-s", "--start")
+    var start: String?
+    @Key("-e", "--end")
+    var end: String?
+    @Key("-t", "--title")
+    var title: String?
+    var defaultValue: String = ""
     func execute() throws {
-        print("not implemented")
+        let calendars = eventStore.calendars(for: .event)
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let startDate = dateFormatter.date(from: start!)
+        let endDate = dateFormatter.date(from: end!)
+        
+        print(start!)
+        print(end!)
+        print(startDate)
+        print(endDate)
+        
+        let predicate = eventStore.predicateForEvents(withStart: startDate!, end: endDate!, calendars: calendars)
+        let matchingEvents = eventStore.events(matching: predicate)
+        for event in matchingEvents{
+            if event.title!.localizedCaseInsensitiveContains(title!){
+                print(event.title!, event.eventIdentifier)
+            }
+        }
     }
 }
 
