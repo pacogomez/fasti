@@ -2,6 +2,7 @@
 
 import EventKit
 import SwiftCLI
+import Rainbow
 
 import SwiftyTextTable
 
@@ -61,8 +62,8 @@ class DelEventCommand: Command {
         let startDate = dateFormatter.date(from: start!)
         let endDate = dateFormatter.date(from: end!)
         
-        print(start!)
-        print(end!)
+        print(start!.blue)
+        print(end!.red)
         print(startDate)
         print(endDate)
         
@@ -70,7 +71,7 @@ class DelEventCommand: Command {
         let matchingEvents = eventStore.events(matching: predicate)
         for event in matchingEvents{
             if event.title!.localizedCaseInsensitiveContains(title!){
-                print(event.title!, event.eventIdentifier)
+                print("\(event.title!), \(event.eventIdentifier!)")
             }
         }
     }
@@ -123,14 +124,14 @@ class ListEventsCommand: Command {
         }
         
         if output == "table"{
-            let eventCol = TextTableColumn(header: "Event")
-            let startCol = TextTableColumn(header: "Start")
-            let endCol = TextTableColumn(header: "End")
+            let eventCol = TextTableColumn(header: "Event".blue)
+            let startCol = TextTableColumn(header: "Start".green)
+            let endCol = TextTableColumn(header: "End".red)
             let statusCol = TextTableColumn(header: "Status")
             let calendarCol = TextTableColumn(header: "Calendar")
             var table = TextTable(columns: [startCol, endCol, eventCol, statusCol, calendarCol])
             for event in matchingEvents{
-                table.addRow(values:[localDateFormatter.string(from:event.startDate!),localDateFormatter.string(from:event.endDate!),event.title!, statuses[event.status.rawValue],
+                table.addRow(values:[localDateFormatter.string(from:event.startDate!).green,localDateFormatter.string(from:event.endDate!).red,event.title!.blue, statuses[event.status.rawValue],
                                      event.calendar.source.title+"/"+event.calendar.title])
             }
             let tableString = table.render()
