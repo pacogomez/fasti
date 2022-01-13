@@ -113,14 +113,19 @@ class ListEventsCommand: Command {
         }else if output == "report" {
             for event in matchingEvents{
                 print(event.title!)
-                print("  \(localDateFormatter.string(from:event.startDate!))-\(localDateFormatter.string(from:event.endDate!)), \(statuses[event.status.rawValue])")
+                print("  \(localDateFormatter.string(from:event.startDate!))-\(localDateFormatter.string(from:event.endDate!)), \(statuses[event.status.rawValue]), \(event.eventIdentifier!)")
+                if event.organizer != nil{
+                    let emptyString = ""
+                    print("  Organizer: \(event.organizer!.name ?? emptyString)")
+                }
                 if event.attendees != nil{
-                    print("  ", terminator: "")
+                    print("  Attendees: ", terminator: "")
                     for attendee in event.attendees!{
                         print("\(attendee.name!)", terminator: ", ")
                     }
+                    print("")
                 }
-                print("\n--")
+                print("--")
             }
         }
     }
