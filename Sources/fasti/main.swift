@@ -20,6 +20,11 @@ let sources = eventStore.sources
 
 let statuses: [String] = ["scheduled", "confirmed", "tentative", "canceled"]
 
+let dayFormatter = DateFormatter()
+let timeFormatter = DateFormatter()
+dayFormatter.dateFormat = "yyyy-MM-dd EEEEE"
+timeFormatter.dateFormat = "hh:mm a"
+
 class GetGroup: CommandGroup {
     let name = "list"
     let children: [Routable] = [ListEventsCommand(), ListCalendarsCommand()]
@@ -34,8 +39,39 @@ class AddGroup: CommandGroup {
 
 class AddEventCommand: Command {
     let name = "event"
+    @Param var source: String
+    @Param var calendar: String
+    @Param var eventTitle: String
+    @Param var startDate: String
+    @Key("-m", "--minutes")
+    var minutes: Int?
     func execute() throws {
-        print("not implemented")
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+        
+        let calendar = getCalendar(source: source, calendar: calendar)
+        if calendar == nil {
+            stderr <<< "calendar not found".red
+            return
+        }
+        
+        let event = EKEvent(eventStore: eventStore)
+        event.calendar = calendar
+        event.title = eventTitle
+        event.startDate = dateFormatter.date(from: startDate)
+        event.endDate = event.startDate + (60 * (Double(minutes ?? 60)))
+        do {
+            if #available(macOS 10.14, *) {
+                try eventStore.save(event, span: .thisEvent)
+                printEvent(event: event)
+                stdout <<< "event added".blue
+            } else {
+                stderr <<< "not supported".red
+            }
+        }
+        catch {
+            print("Error saving event in calendar".red)
+        }
     }
 }
 
@@ -52,18 +88,15 @@ class DelEventCommand: Command {
     func execute() throws {
         let event = eventStore.event(withIdentifier: eventIdentifier)
         if event != nil {
-            print(event!)
+            printEvent(event: event!)
             print("delete event \"\(event!.title.blue)\"? (" + "Y".bold + "es/" + "N".bold + "o): ", terminator: "")
             
             let response = readLine(strippingNewline: true)!
             if response.compare("y", options: .caseInsensitive) == .orderedSame {
-                
                 do {
-
                     try eventStore.remove(event!, span: .thisEvent, commit: true)
                     stdout <<< "event deleted".blue
                 }
-
                 catch let error {
                     print(error)
                 }
@@ -107,11 +140,6 @@ class ListEventsCommand: Command {
         let endOfToday = Calendar.current.date(bySettingHour:23, minute:59, second: 59, of: startDate!) ?? startDate!
         let later = Calendar.current.date(byAdding: .day, value: next, to:endOfToday) ?? startDate!
         
-        let dayFormatter = DateFormatter()
-        let timeFormatter = DateFormatter()
-        dayFormatter.dateFormat = "yyyy-MM-dd EEEEE"
-        timeFormatter.dateFormat = "hh:mm a"
-        
         let predicate = eventStore.predicateForEvents(withStart: startDate!, end: later, calendars: calendars)
         let matchingEvents = eventStore.events(matching: predicate)
         
@@ -138,8 +166,9 @@ class ListEventsCommand: Command {
                                      event.calendar.source.title+"/"+event.calendar.title,
                                      event.eventIdentifier])
             }
-            let tableString = table.render()
-            print(tableString)
+            if !matchingEvents.isEmpty{
+                print(table.render())
+            }
         }else if output == "report" {
             for event in matchingEvents{
                 print(event.title!.blue)
@@ -175,6 +204,28 @@ class ListCalendarsCommand: Command {
             }
         }
     }
+}
+
+func getCalendar(source: String, calendar: String) -> EKCalendar? {
+    for (_, s) in sources.enumerated(){
+        if s.title.compare(source, options: .caseInsensitive) == .orderedSame {
+            for (_, c) in s.calendars(for: .event).enumerated(){
+                if c.title.compare(calendar, options: .caseInsensitive) == .orderedSame {
+                    return c
+                }
+            }
+        }
+    }
+    return nil
+}
+
+func printEvent(event: EKEvent){
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
+    print("Calendar: \(event.calendar!.source!.title)/\(event.calendar!.title)")
+    print("Event:    \(event.title!.blue)")
+    print("From:     \(dateFormatter.string(from: event.startDate!).green)")
+    print("To:       \(dateFormatter.string(from: event.endDate!).red)")
 }
 
 let fastiCli = CLI(name: "fasti")
