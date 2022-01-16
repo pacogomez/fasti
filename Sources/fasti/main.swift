@@ -21,9 +21,9 @@ let sources = eventStore.sources
 let statuses: [String] = ["scheduled", "confirmed", "tentative", "canceled"]
 
 class GetGroup: CommandGroup {
-    let name = "get"
+    let name = "list"
     let children: [Routable] = [ListEventsCommand(), ListCalendarsCommand()]
-    let shortDescription = "get"
+    let shortDescription = "list"
 }
 
 class AddGroup: CommandGroup {
@@ -47,32 +47,31 @@ class DelGroup: CommandGroup {
 
 class DelEventCommand: Command {
     let name = "event"
-    @Key("-s", "--start")
-    var start: String?
-    @Key("-e", "--end")
-    var end: String?
-    @Key("-t", "--title")
-    var title: String?
-    var defaultValue: String = ""
+    
+    @Param var eventIdentifier: String
     func execute() throws {
-        let calendars = eventStore.calendars(for: .event)
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let startDate = dateFormatter.date(from: start!)
-        let endDate = dateFormatter.date(from: end!)
-        
-        print(start!.blue)
-        print(end!.red)
-        print(startDate)
-        print(endDate)
-        
-        let predicate = eventStore.predicateForEvents(withStart: startDate!, end: endDate!, calendars: calendars)
-        let matchingEvents = eventStore.events(matching: predicate)
-        for event in matchingEvents{
-            if event.title!.localizedCaseInsensitiveContains(title!){
-                print("\(event.title!), \(event.eventIdentifier!)")
+        let event = eventStore.event(withIdentifier: eventIdentifier)
+        if event != nil {
+            print(event!)
+            print("delete event \"\(event!.title.blue)\"? (" + "Y".bold + "es/" + "N".bold + "o): ", terminator: "")
+            
+            let response = readLine(strippingNewline: true)!
+            if response.compare("y", options: .caseInsensitive) == .orderedSame {
+                
+                do {
+
+                    try eventStore.remove(event!, span: .thisEvent, commit: true)
+                    stdout <<< "event deleted".blue
+                }
+
+                catch let error {
+                    print(error)
+                }
+            } else{
+                stdout <<< "event not deleted"
             }
+        }else{
+            Term.stderr <<< "event not found".red
         }
     }
 }
@@ -108,8 +107,10 @@ class ListEventsCommand: Command {
         let endOfToday = Calendar.current.date(bySettingHour:23, minute:59, second: 59, of: startDate!) ?? startDate!
         let later = Calendar.current.date(byAdding: .day, value: next, to:endOfToday) ?? startDate!
         
-        let localDateFormatter = DateFormatter()
-        localDateFormatter.dateFormat = "yyyy-MM-dd hh:mm a EEEEE"
+        let dayFormatter = DateFormatter()
+        let timeFormatter = DateFormatter()
+        dayFormatter.dateFormat = "yyyy-MM-dd EEEEE"
+        timeFormatter.dateFormat = "hh:mm a"
         
         let predicate = eventStore.predicateForEvents(withStart: startDate!, end: later, calendars: calendars)
         let matchingEvents = eventStore.events(matching: predicate)
@@ -124,34 +125,40 @@ class ListEventsCommand: Command {
         }
         
         if output == "table"{
+            let dayCol = TextTableColumn(header: "Date")
             let eventCol = TextTableColumn(header: "Event".blue)
             let startCol = TextTableColumn(header: "Start".green)
             let endCol = TextTableColumn(header: "End".red)
             let statusCol = TextTableColumn(header: "Status")
             let calendarCol = TextTableColumn(header: "Calendar")
-            var table = TextTable(columns: [startCol, endCol, eventCol, statusCol, calendarCol])
+            let idCol = TextTableColumn(header: "Id")
+            var table = TextTable(columns: [dayCol, startCol, endCol, eventCol, statusCol, calendarCol, idCol])
             for event in matchingEvents{
-                table.addRow(values:[localDateFormatter.string(from:event.startDate!).green,localDateFormatter.string(from:event.endDate!).red,event.title!.blue, statuses[event.status.rawValue],
-                                     event.calendar.source.title+"/"+event.calendar.title])
+                table.addRow(values:[dayFormatter.string(from: event.startDate!), timeFormatter.string(from:event.startDate!).green, timeFormatter.string(from:event.endDate!).red, event.title!.blue, statuses[event.status.rawValue],
+                                     event.calendar.source.title+"/"+event.calendar.title,
+                                     event.eventIdentifier])
             }
             let tableString = table.render()
             print(tableString)
         }else if output == "report" {
             for event in matchingEvents{
-                print(event.title!)
-                print("  \(localDateFormatter.string(from:event.startDate!))-\(localDateFormatter.string(from:event.endDate!)), \(statuses[event.status.rawValue]), \(event.eventIdentifier!)")
+                print(event.title!.blue)
+                print("  \(timeFormatter.string(from:event.startDate!).green) - \(timeFormatter.string(from:event.endDate!).red), \(statuses[event.status.rawValue]), \(event.eventIdentifier!)")
                 if event.organizer != nil{
                     let emptyString = ""
                     print("  Organizer: \(event.organizer!.name ?? emptyString)")
                 }
                 if event.attendees != nil{
                     print("  Attendees: ", terminator: "")
-                    for attendee in event.attendees!{
-                        print("\(attendee.name!)", terminator: ", ")
+                    for (n, attendee) in event.attendees!.enumerated(){
+                        if (n>0){
+                            print(", ", terminator: "")
+                        }
+                        print("\(attendee.name!)", terminator: "")
                     }
                     print("")
                 }
-                print("--")
+                print("")
             }
         }
     }

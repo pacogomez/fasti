@@ -5,17 +5,17 @@ Using the Calendar from the command line.
 
 ## Sample Usage
 ```
-fasti get calendars
+fasti list calendars
 
-fasti get events
+fasti list events
 
-fasti get events -n 7
+fasti list events -n 7
 
-fasti get events -s 2022-02-01
+fasti list events -s 2022-02-01
 
-fasti get events -o report
+fasti list events -o report
 
-fasti get events -o table
+fasti list events -o table
 
 cal -3
 ```
