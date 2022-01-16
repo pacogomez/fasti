@@ -172,7 +172,7 @@ class ListEventsCommand: Command {
         }else if output == "report" {
             for event in matchingEvents{
                 print(event.title!.blue)
-                print("  \(timeFormatter.string(from:event.startDate!).green) - \(timeFormatter.string(from:event.endDate!).red), \(statuses[event.status.rawValue]), \(event.eventIdentifier!)")
+                print("  \(timeFormatter.string(from:event.startDate!).green) - \(timeFormatter.string(from:event.endDate!).red), \(statuses[event.status.rawValue]), \(event.eventIdentifier!), \(event.calendarItemExternalIdentifier!)")
                 if event.organizer != nil{
                     let emptyString = ""
                     print("  Organizer: \(event.organizer!.name ?? emptyString)")
